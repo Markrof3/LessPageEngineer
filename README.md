@@ -399,3 +399,13 @@ wait_urls 支持两种格式：
 | error_reason    | 失败原因                                               |
 | step_spend_time | 各步骤耗时统计                                         |
 | message         | 失败时的错误信息                                       |
+
+
+
+## 碎碎念
+
+首先要感谢`DrissionPage`作者开源`DrissionPage`
+
+项目开始于24年10月，经过半年的更新迭代，以及大半年的停滞更新，就到现在了(25年12月)
+
+希望这个项目能让大家少掉点头发
