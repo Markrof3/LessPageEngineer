@@ -79,8 +79,9 @@ class TestElementOperations:
             'url': 'https://www.baidu.com',
             'timeout': 30,
             'script': [
-                {'pattern': '#su', 'function': 'click'}
+                {'pattern': 'c:#chat-submit-button', 'function': 'click'},
             ],
+            'ensure_eles': [{'pattern': 'x://b[contains(text(), "网页")]'}],
         }
         
         resp = requests.post(f'{BASE_URL}/uploadUrl', json=post_data)
@@ -95,8 +96,10 @@ class TestElementOperations:
             'url': 'https://www.baidu.com',
             'timeout': 30,
             'script': [
-                {'pattern': '#kw', 'function': 'input', 'value': 'test'}
+                {'pattern': '#chat-textarea', 'function': 'input', 'value': 'LEP测试'},
+                {'pattern': 'c:#chat-submit-button', 'function': 'click'},
             ],
+            'ensure_eles': [{'pattern': 'x://b[contains(text(), "网页")]'}],
         }
         
         resp = requests.post(f'{BASE_URL}/uploadUrl', json=post_data)
@@ -110,8 +113,9 @@ class TestElementOperations:
             'url': 'https://www.baidu.com',
             'timeout': 30,
             'script': [
-                {'pattern': '#su', 'function': 'click', 'by_js': True}
+                {'pattern': 'c:#chat-submit-button', 'function': 'click', 'by_js': True},
             ],
+            'ensure_eles': [{'pattern': 'x://b[contains(text(), "网页")]'}],
         }
         
         resp = requests.post(f'{BASE_URL}/uploadUrl', json=post_data)
@@ -132,7 +136,7 @@ class TestThreadScript:
             'script': [
                 {'run_js': 'return 1'}
             ],
-            'ensure_eles': [{'pattern': '#su'}],
+            'ensure_eles': [{'pattern': 'c:#chat-submit-button'}],
         }
         
         resp = requests.post(f'{BASE_URL}/uploadUrl', json=post_data)

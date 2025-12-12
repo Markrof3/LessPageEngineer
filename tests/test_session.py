@@ -6,7 +6,7 @@ import pytest
 import requests
 import time
 
-BASE_URL = 'http://127.0.0.1:27888'
+BASE_URL = 'http://127.0.0.1:27889'
 
 
 class TestSessionKeep:

@@ -6,10 +6,10 @@ from re import search, compile
 from requests.utils import dict_from_cookiejar
 from threading import Thread, Lock
 
-from LessPageEngineering.fetcher import fetcher_settings
-from LessPageEngineering.fetcher.fetcher import Fetcher
-from LessPageEngineering.UtilClass.WebSocketSend import WebSocketClient
-from LessPageEngineering.Utils.Utils import url_pattern_cut, get_brand_new_proxy, cookie_string_to_dict, decode_base64_in_chunks
+from LessPageEngineer.fetcher import fetcher_settings
+from LessPageEngineer.fetcher.fetcher import Fetcher
+from LessPageEngineer.UtilClass.WebSocketSend import WebSocketClient
+from LessPageEngineer.Utils.Utils import url_pattern_cut, get_brand_new_proxy, cookie_string_to_dict, decode_base64_in_chunks
 
 
 class FetchRequest:

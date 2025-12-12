@@ -4,7 +4,7 @@ import time
 import requests
 from hashlib import md5
 
-from LessPageEngineering.Utils.FetchTimeoutThread import function_with_timeout
+from LessPageEngineer.Utils.FetchTimeoutThread import function_with_timeout
 
 
 class ProxyMiddleware:

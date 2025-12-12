@@ -8,9 +8,9 @@ from loguru import logger
 from concurrent.futures import ThreadPoolExecutor
 from DrissionPage._base.driver import Driver
 
-from LessPageEngineering.Utils.FetchTimeoutThread import function_with_timeout
-from LessPageEngineering.Utils.Utils import url_pattern_cut, reduce_url
-from LessPageEngineering.BaseClass.CDPBase import RouteDriver, Request, Response
+from LessPageEngineer.Utils.FetchTimeoutThread import function_with_timeout
+from LessPageEngineer.Utils.Utils import url_pattern_cut, reduce_url
+from LessPageEngineer.BaseClass.CDPBase import RouteDriver, Request, Response
 
 
 class GlobalRouteExecutor:

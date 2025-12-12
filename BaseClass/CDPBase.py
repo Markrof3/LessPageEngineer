@@ -3,7 +3,7 @@ import threading
 
 from DrissionPage._base.driver import Driver
 
-from LessPageEngineering.Utils.Utils import encode_base64_in_chunks, decode_base64_in_chunks
+from LessPageEngineer.Utils.Utils import encode_base64_in_chunks, decode_base64_in_chunks
 
 class RouteDriver(Driver):
     def __init__(self, *args, **kwargs):

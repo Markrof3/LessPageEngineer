@@ -17,7 +17,7 @@ from .UpstreamSettings import UPSTREAM_CONTROL_ENABLE, UPSTREAM_CACHE_SYNC
 class Control:
 
     def __init__(self, settings=None, reload_page=True, all_show_log=0, route_log=0,
-                 use_old_chrome=False, cache_proxy='', server_port=None):
+                 cache_proxy='', server_port=None):
         self.PROXY_NEED = True
         self.chrome_process_dict = {}
         # 缓存代理
@@ -31,8 +31,6 @@ class Control:
         self.settings = settings
         self.fetch_log = self.settings['FETCH_LOG']
         self.route_log = route_log
-        # 使用历史版本Chrome
-        self.use_old_chrome = use_old_chrome
         # 任务列表
         self.task_list = []
         self.TAB_MODE = True
@@ -45,7 +43,6 @@ class Control:
         # self.det = DdddOcr(det=False, ocr=False, show_ad=False)
         # 浏览器创建器
         self.chrome_manger = ChromeCreator(proxy_need=self.PROXY_NEED, local=self.LOCAL, tab_mode=self.TAB_MODE,
-                                           use_old_chrome=self.use_old_chrome,
                                            cache_proxy=self.cache_proxy, reload_page_flag=self.RELOAD_PAGE,
                                            settings=self.settings, target_create_callback=self.target_create)
         self.chrome_manger.create_chrome()
