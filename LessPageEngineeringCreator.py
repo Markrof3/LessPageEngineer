@@ -43,8 +43,7 @@ class LessPageEngineeringCreator:
     def _handle_upload_request(self):
         """处理上传请求的核心逻辑"""
         self.last_request_time = time.time()
-        use_old = bool(request.headers.get('Use-old'))
-        self._init_chrome(use_old)
+        self._init_chrome()
 
         data = request.get_json()
         start_time = time.time()
@@ -59,7 +58,7 @@ class LessPageEngineeringCreator:
             self._handle_request_error(e)
             return jsonify({'status': 'error', 'message': str(e)}), 400
 
-    def _init_chrome(self, use_old=False):
+    def _init_chrome(self):
         """初始化浏览器控制实例"""
         if self.control is None:
             with self.init_lock:
@@ -67,7 +66,6 @@ class LessPageEngineeringCreator:
                     self.control = Control(
                         settings=self.settings,
                         reload_page=True,
-                        use_old_chrome=use_old,
                         cache_proxy=self.cache_proxy,
                         server_port=self.port,
                     )

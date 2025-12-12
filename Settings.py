@@ -8,8 +8,6 @@ from LessPageEngineering.UpstreamSettings import *
 TABS_NUM = 6
 # 捕获请求的日志等级
 FETCH_LOG = 0
-# 默认是否启用旧浏览器(不会自动升级https请求)
-DEFAULT_USE_OLD = True
 # 服务节点运行默认端口
 SERVER_DEFAULT_PORT = 27888
 # 默认缓存代理端口号
@@ -120,9 +118,5 @@ HANDLE_REQUEST_DATA = None
 HANDLE_RESPONSE_DATA = None
 # 浏览器路径
 BROWSER_PATH = [
-    # {'path': r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-120\chrome.exe', 'absolute_path': True, 'use_old': True},
-    # {'path': r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-117\chrome.exe', 'absolute_path': True, 'use_old': True},
-    # {'path':r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-121\chrome.exe','absolute_path':True, 'use_old':True},
-    # {'path':r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-119\chrome.exe','absolute_path':True, 'use_old':True},
-    # {'path':r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-121\chrome.exe','absolute_path':True, 'use_old':True},
+    # {'path': r'E:\Chrome\chrome.exe', 'absolute_path': True},
 ]
