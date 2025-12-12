@@ -9,12 +9,12 @@ import os
 from copy import deepcopy
 from queue import Queue
 
-from LessPageEngineering.UtilClass.CDPHandler import  RouteHandler, Runtime
-from LessPageEngineering.UtilClass.FetchRequest import FetchRequest
-from LessPageEngineering.UtilClass.task_components import CookieManager
-# from LessPageEngineering.JavaScriptFunc.Slide import SLIDE_FUNC as slide_js
-# from LessPageEngineering.JavaScriptFunc.SlideByClassName import SLIDE_FUNC as slide_js_class
-from LessPageEngineering.Utils.Utils import b64encode
+from LessPageEngineer.UtilClass.CDPHandler import  RouteHandler, Runtime
+from LessPageEngineer.UtilClass.FetchRequest import FetchRequest
+from LessPageEngineer.UtilClass.task_components import CookieManager
+# from LessPageEngineer.JavaScriptFunc.Slide import SLIDE_FUNC as slide_js
+# from LessPageEngineer.JavaScriptFunc.SlideByClassName import SLIDE_FUNC as slide_js_class
+from LessPageEngineer.Utils.Utils import b64encode
 
 
 # 超时装饰器

@@ -6,13 +6,13 @@ from typing import Optional, Dict, List, Any
 
 import redis
 
-from LessPageEngineering.UpstreamSettings import (
+from LessPageEngineer.UpstreamSettings import (
     UPSTREAM_CONTROL_ENABLE, UPSTREAM_CACHE_SYNC,
     REDIS_HOST, REDIS_PORT, REDIS_DB,
     CACHE_PROXY_MAIN_KEY, CACHE_PROXY_HEADERS_KEY,
     CACHE_PROXY_BODY_KEY, GLOBAL_PROXY_KEY
 )
-from LessPageEngineering.Utils.Utils import url_pattern_cut, get_local_ip, encode_base64_in_chunks
+from LessPageEngineer.Utils.Utils import url_pattern_cut, get_local_ip, encode_base64_in_chunks
 
 
 class RedisConnectionPool:

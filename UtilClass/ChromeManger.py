@@ -6,7 +6,7 @@ from queue import Queue
 from threading import Lock
 from DrissionPage import ChromiumOptions
 
-from LessPageEngineering.BaseClass.ChromeBase import LPE_WebPage
+from LessPageEngineer.BaseClass.ChromeBase import LPE_WebPage
 
 
 class Chrome:
@@ -20,7 +20,7 @@ class Chrome:
         self.page = None
         self.using_port = None
 
-    def get_chrome(self, proxies: str = '', use_old_chrome: bool = False):
+    def get_chrome(self, proxies: str = ''):
         assert isinstance(proxies, str), '类型有误'
         driver = ChromiumOptions()
         # 开启无头模式
@@ -28,17 +28,10 @@ class Chrome:
             driver.headless()
         path = None
         for i in self.settings['BROWSER_PATH']:
-            if use_old_chrome:
-                if i['use_old']:
-                    r_path = i['path'] if i['absolute_path'] else os.getcwd() + i['path']
-                    if os.path.exists(r_path):
-                        path = r_path
-                        break
-            else:
-                r_path = i['path'] if i['absolute_path'] else os.getcwd() + i['path']
-                if os.path.exists(r_path):
-                    path = r_path
-                    break
+            r_path = i['path'] if i.get('absolute_path') else os.getcwd() + i['path']
+            if os.path.exists(r_path):
+                path = r_path
+                break
         if path:
             driver.set_browser_path(path)
         driver.set_argument('--disk-cache-dir',
@@ -99,13 +92,12 @@ class Chrome:
 
 class ChromeCreator:
 
-    def __init__(self, settings, proxy_need, local, tab_mode, use_old_chrome, cache_proxy, reload_page_flag,
+    def __init__(self, settings, proxy_need, local, tab_mode, cache_proxy, reload_page_flag,
                  target_create_callback):
         self.proxy_need = proxy_need
         self.settings = settings
         self.local = local
         self.tab_mode = tab_mode
-        self.use_old_chrome = use_old_chrome
         self.pages_list = []
         self.max_chrome_tab = self.settings['MAX_CHROME_TABS_NUM']
         self.cache_proxy = cache_proxy
@@ -132,7 +124,7 @@ class ChromeCreator:
             page.set.auto_handle_alert(all_tabs=True)
             return page.new_tab(), page
         else:
-            page = chrome.get_chrome(use_old_chrome=self.use_old_chrome)
+            page = chrome.get_chrome()
             page.browser.driver.set_callback('Target.targetCreated', self.target_create_callback, immediate=True)
             page.set.auto_handle_alert(all_tabs=True)
             return page, page
@@ -143,8 +135,8 @@ class ChromeCreator:
             if i['tab_count'] < self.max_chrome_tab:
                 i['tab_count'] += 1
                 return i['page']
-        chrome = Chrome(settings=self.settings,proxy_need=self.proxy_need if not self.local else False)
-        page = chrome.get_chrome(use_old_chrome=self.use_old_chrome, proxies=self.cache_proxy)
+        chrome = Chrome(settings=self.settings, proxy_need=self.proxy_need if not self.local else False)
+        page = chrome.get_chrome(proxies=self.cache_proxy)
         page.browser.driver.set_callback('Target.targetCreated', self.target_create_callback, immediate=True)
         self.pages_list.append({'tab_count': 1, 'page': page, 'start_time': round(time.time())})
         return page
@@ -152,9 +144,9 @@ class ChromeCreator:
     # 重启chromium
     def reload_page(self, page_dict):
         print("重启浏览器")
-        chrome = Chrome(settings=self.settings,proxy_need=self.proxy_need if not self.local else False)
+        chrome = Chrome(settings=self.settings, proxy_need=self.proxy_need if not self.local else False)
         old_page = page_dict['page']
-        page = chrome.get_chrome(use_old_chrome=self.use_old_chrome)
+        page = chrome.get_chrome()
         page.browser.driver.set_callback('Target.targetCreated', self.target_create_callback, immediate=True)
         for chrome_dict in self.chrome_list:
             if chrome_dict['page'] == old_page:

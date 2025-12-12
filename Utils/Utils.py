@@ -7,7 +7,7 @@ from random import choice
 from base64 import b64encode, b64decode
 from urllib.parse import parse_qs
 
-from LessPageEngineering.Settings import IP_PROXYS
+from LessPageEngineer.Settings import IP_PROXYS
 
 LAST_UPDATE_TIME = 0
 PROXY_POOL = []

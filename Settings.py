@@ -1,15 +1,13 @@
 import os
 
 # 导入上游控制配置（保持向后兼容）
-from LessPageEngineering.UpstreamSettings import *
+from LessPageEngineer.UpstreamSettings import *
 
 ''' main.py & CentralControl 服务节点(单个浏览器) '''
 # 标签页数量 -- 一个标签页通常代表着一个请求
 TABS_NUM = 6
 # 捕获请求的日志等级
 FETCH_LOG = 0
-# 默认是否启用旧浏览器(不会自动升级https请求)
-DEFAULT_USE_OLD = True
 # 服务节点运行默认端口
 SERVER_DEFAULT_PORT = 27888
 # 默认缓存代理端口号
@@ -28,7 +26,8 @@ MAX_TAB_LIVE_TIME = 300000
 MAX_CHROME_LIVE_TIME = 30000
 # 标签页状态打印时间间隔?s
 TABS_STATUS_INTERVAL = 60
-# 标签页在上次请求间隔?s后不再保持状态
+# 标签页 Session 保持的最大空闲时间（秒）
+# 当标签页绑定某个 session_id 后，若超过此时间没有收到该 session 的请求，则释放绑定
 MAX_AFTER_REQUEST_SESSION_TIME = 9000
 # 是否展示耗时步骤(运行中)
 SHOW_STEP_SPEND = False
@@ -120,9 +119,5 @@ HANDLE_REQUEST_DATA = None
 HANDLE_RESPONSE_DATA = None
 # 浏览器路径
 BROWSER_PATH = [
-    # {'path': r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-120\chrome.exe', 'absolute_path': True, 'use_old': True},
-    # {'path': r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-117\chrome.exe', 'absolute_path': True, 'use_old': True},
-    # {'path':r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-121\chrome.exe','absolute_path':True, 'use_old':True},
-    # {'path':r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-119\chrome.exe','absolute_path':True, 'use_old':True},
-    # {'path':r'E:\aaazzl\zzl\LessPageEngineering_Depends\Chrome_LIST\chrome-win-121\chrome.exe','absolute_path':True, 'use_old':True},
+    # {'path': r'E:\Chrome\chrome.exe', 'absolute_path': True},
 ]

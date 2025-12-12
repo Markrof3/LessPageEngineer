@@ -7,7 +7,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
-from LessPageEngineering.Settings import MONGO_HOST, MONGO_DB, MONGO_CONNECT
+from LessPageEngineer.Settings import MONGO_HOST, MONGO_DB, MONGO_CONNECT
 
 
 class MongoConnectionPool:

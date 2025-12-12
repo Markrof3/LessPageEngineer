@@ -10,10 +10,10 @@ from curl_cffi import requests as curl_requests
 from curl_cffi import CurlOpt
 from urllib3.exceptions import InsecureRequestWarning
 
-from LessPageEngineering.fetcher.fetch_timeout_thread import request_with_timeout
-from LessPageEngineering.fetcher.middlewares.fetcher_middleware import FetcherMiddleware
-from LessPageEngineering.fetcher.middlewares.proxy_middleware import ProxyMiddleware
-from LessPageEngineering.fetcher.middlewares.ua_middleware import UAMiddleware
+from LessPageEngineer.fetcher.fetch_timeout_thread import request_with_timeout
+from LessPageEngineer.fetcher.middlewares.fetcher_middleware import FetcherMiddleware
+from LessPageEngineer.fetcher.middlewares.proxy_middleware import ProxyMiddleware
+from LessPageEngineer.fetcher.middlewares.ua_middleware import UAMiddleware
 
 # 禁用安全请求警告
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
