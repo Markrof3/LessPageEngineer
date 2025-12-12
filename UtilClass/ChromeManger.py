@@ -35,8 +35,8 @@ class Chrome:
         if path:
             driver.set_browser_path(path)
         driver.set_argument('--disk-cache-dir',
-                            value=f'{self.settings["CHROME_CACHE_SAVE_PATH"]}\ChromeUser{len(self.settings["BROWSER_PATH"])}')
-        driver.set_user_data_path(f'{self.settings["CHROME_USER_PATH"]}\ChromeUser{len(self.settings["BROWSER_PATH"])}')
+                            value=f'{self.settings["CHROME_CACHE_SAVE_PATH"]}\\ChromeUser{len(self.settings["BROWSER_PATH"])}')
+        driver.set_user_data_path(f'{self.settings["CHROME_USER_PATH"]}\\ChromeUser{len(self.settings["BROWSER_PATH"])}')
 
         if self.settings["CHANGE_BROWSER"]:
             self.settings['BROWSER_PATH'].remove(i)
@@ -73,7 +73,7 @@ class Chrome:
                 driver.add_extension(extension_item)
         if proxies:
             driver.set_proxy(proxies)
-        elif self.proxy_need:
+        elif (self.proxy_need and self.settings['UPSTREAM']):
             driver.set_proxy(self.settings['UPSTREAM'])
         # 将quit函数注册到atexist中
         # 默认d模式创建对象
