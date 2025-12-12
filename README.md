@@ -1,9 +1,25 @@
 # LessPageEngineer
+
 浏览器调度，以及部分CDP协议支持，基于DrissionPage二开
 
+## 目录
 
+- [使用须知](#使用须知)
+- [如何使用](#如何使用)
+  - [服务端](#服务端)
+  - [客户端](#客户端)
+- [参数说明](#参数说明)
+  - [基础参数](#基础参数)
+  - [key 缓存机制](#key-缓存机制)
+  - [session_id 会话保持](#session_id-会话保持)
+  - [run_time 与 run_time_enable 的区别](#run_time-与-run_time_enable-的区别)
+  - [元素匹配语法](#元素匹配语法)
+  - [wait_urls 详解](#wait_urls-详解)
+  - [ensure_eles 详解](#ensure_eles-详解)
+  - [script 详解](#script-详解)
+- [返回值结构](#返回值结构)
 
-
+---
 
 ## 使用须知
 
@@ -27,5 +43,359 @@
 
 - 使用本项目所产生的**一切行为与后果均由使用者自行承担**；
 - 因使用 LessPageEngineer 所引发的法律纠纷、经济损失、技术故障或其他任何问题，**版权持有人不承担任何直接或间接责任**；
-- 本项目按“现状”（AS IS）提供，**不保证其适用于任何特定用途，亦不对潜在缺陷所导致的损失负任何责任**；
+- 本项目按"现状"（AS IS）提供，**不保证其适用于任何特定用途，亦不对潜在缺陷所导致的损失负任何责任**；
 - 版权持有人**不对因第三方使用本项目而造成的任何损害提供赔偿或技术支持**。
+
+---
+
+## 如何使用
+
+### 服务端
+
+1. 创建虚拟环境(可选)
+
+   ```bash
+   python -m venv LPEEnv
+   LPEEnv\Scripts\activate
+   ```
+
+2. 安装Python库
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. 在项目的上一层文件路径创建启动文件(类似main.py)
+
+   ```python
+   from LessPageEngineer.LessPageEngineeringCreator import LessPageEngineeringCreator
+   
+   less = LessPageEngineeringCreator({
+       'TABS_NUM': 1,                        # 标签页数量
+       'SERVER_DEFAULT_PORT': 27889,         # 服务端口
+       'MAX_CHROME_TABS_NUM': 5,             # 最大标签页数量
+       'MAX_TAB_LIVE_TIME': 60,              # 标签页最大存活时间
+       'MAX_CHROME_LIVE_TIME': 150,          # 浏览器最大存活时间
+       'MAX_AFTER_REQUEST_SESSION_TIME': 150,# 标签会话保存时间
+       'EXTENSION_PATHS': [],                # 插件路径
+       'UPSTREAM': None,                     # 上游代理
+   })
+   less.run()  # 启动服务
+   ```
+
+   看到类似 `---------- 服务端口: 27889 缓存代理: 无 上游控制: 禁用 ----------` 的输出，则表示正常运行
+
+### 客户端
+
+发送请求调用服务端接口即可
+
+```python
+import requests
+
+BASE_URL = 'http://127.0.0.1:27889'
+
+post_data = {
+    'url': 'https://www.baidu.com',
+    'timeout': 30,
+    'script': [
+        {'pattern': 'c:#chat-submit-button', 'function': 'click'},
+    ],
+    'ensure_eles': [{'pattern': 'x://b[contains(text(), "网页")]'}],
+}
+
+resp = requests.post(f'{BASE_URL}/uploadUrl', json=post_data)
+result = resp.json()
+print(result)
+```
+
+---
+
+## 参数说明
+
+### 基础参数
+
+| 参数                     | 类型      | 说明                                                                                                                         |
+| ------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| url                      | string    | 浏览器请求的链接(**必要参数**)                                                                                               |
+| key                      | string    | 索引浏览器缓存的Key                                                                                                          |
+| timeout                  | int       | 超时时间(默认60)                                                                                                             |
+| fast                     | bool      | 强制页面的加载模式(为True时为None模式，为False时为normal模式，详情见https://www.drissionpage.cn/ChromiumPage/visit)          |
+| key_save                 | bool      | 是否保存Key(默认False)                                                                                                       |
+| key_replace              | bool      | 是否替换Key(默认False)                                                                                                       |
+| wait_urls                | list      | 需要进行捕获/网络请求的链接列表，详情见 [wait_urls 详解](#wait_urls-详解)                                                    |
+| disable_network          | bool      | 禁止进行额外的网络请求 **PS:在wait_urls中匹配到的链接不会被禁止**                                                            |
+| disable_img_font         | bool      | 禁止图片、css文件加载(默认False)                                                                                             |
+| ensure_eles              | list      | 确保加载的元素列表，详情见 [ensure_eles 详解](#ensure_eles-详解)                                                             |
+| ensure_all               | bool      | 确保**ensure_eles**中的所有元素被正确加载(默认True)                                                                          |
+| iframe_ele               | string    | 页面中的iframe **PS:当请求链接有iframe时，防止因元素嵌套在iframe导致ensure_eles无法正常运行** (实验性功能)                   |
+| iframe_route             | bool      | 是否监听iframe中的请求(默认False)                                                                                            |
+| run_time                 | bool      | 页面是否需要执行指定的js语句时**必须为True**                                                                                 |
+| script                   | list      | 让页面运行的脚本，详情见 [script 详解](#script-详解)                                                                         |
+| thread_script            | bool      | script是否以线程模式启动(默认False)                                                                                          |
+| script_error_reload_page | bool      | script执行出错时是否重新加载页面(默认True,在thread_script模式下固定False)                                                    |
+| run_time_enable          | bool      | 是否运行cdp-Runtime.enable(默认为True)                                                                                       |
+| fail_return              | bool      | 不满足返回条件时，是否返回当前页面以及其他参数项(默认False)                                                                  |
+| cookies                  | bool      | 是否返回页面的Cookies(默认False)                                                                                             |
+| set_cookies              | dict/list | 设置页面的Cookies                                                                                                            |
+| session_storage          | bool      | 是否返回页面的session_storage(默认False)                                                                                     |
+| set_session_storage      | dict      | 设置页面的session_storage                                                                                                    |
+| local_storage            | bool      | 是否返回页面的local_storage(默认False)                                                                                       |
+| set_local_storage        | dict      | 设置页面的local_storage                                                                                                      |
+| clear_cookies            | bool      | 是否需要清理标签页cookies(默认True，使用session_id保持会话时默认False)                                                       |
+| new_context              | bool      | 是否需要以新的上下文运行(默认False)**PS:不同的上下文代表着Cookies不共享,暂时没有测试页面缓存是否共享**                       |
+| session_id               | str       | 保持标签页的id **PS:必须为str类型**                                                                                          |
+| init_session             | dict      | 初始化保持标签页的参数                                                                                                       |
+| global_proxy             | string    | 设定浏览器**全局**代理                                                                                                       |
+| html                     | bool      | 是否需要返回浏览器Html(默认False)                                                                                            |
+| ua                       | string    | 设置浏览器User-Agent                                                                                                         |
+| reset_tcp_connect        | bool      | 重置浏览器所有TCP连接(默认False) **PS:启用会极大影响请求速度**                                                               |
+
+> **须知：**
+>
+> - `**` 匹配链接通配符，相当于正则中的 `.*`，即任何字符
+> - **ensure_eles与wait_urls两者都有时，ensure_eles作为页面正确加载的评定标准**
+
+---
+
+### key 缓存机制
+
+key 用于缓存页面请求过程中的网络资源（如 JS、CSS、API 响应等），下次请求相同 key 时可直接使用缓存，加快页面加载速度。
+
+**缓存内容：** 页面加载过程中拦截到的所有网络请求的响应（URL、响应头、响应体、状态码）
+
+**相关参数：**
+
+| 参数        | 作用                                                                 |
+| ----------- | -------------------------------------------------------------------- |
+| key         | 指定使用哪个缓存，传入已存在的 key 会使用对应缓存                    |
+| key_save    | 为 True 时，将本次请求的网络资源保存为缓存（key 自动生成为 URL 的 Base64） |
+| key_replace | 为 True 时，强制覆盖已存在的缓存                                     |
+
+**使用场景：**
+- 页面结构固定，希望加速后续请求
+- 需要离线使用已缓存的页面资源
+- 需要修改前端文件
+
+```python
+# 第一次请求：保存缓存
+{'url': 'https://example.com', 'key_save': True}
+
+# 后续请求：使用缓存
+{'url': 'https://example.com', 'key': 'aHR0cHM6Ly9leGFtcGxlLmNvbQ=='}
+```
+
+---
+
+### session_id 会话保持
+
+session_id 用于在多次请求之间保持同一个浏览器标签页的状态（Cookies、登录态等），实现会话保持。
+
+**工作原理：**
+- 首次请求携带 `session_id` 时，会将该标签页与此 ID 绑定
+- 后续携带相同 `session_id` 的请求会复用同一标签页
+- 标签页会在 `MAX_AFTER_REQUEST_SESSION_TIME`（默认150秒）无请求后自动释放
+
+**相关参数：**
+
+| 参数         | 作用                                                           |
+| ------------ | -------------------------------------------------------------- |
+| session_id   | 会话标识符（必须为字符串类型）                                 |
+| init_session | 首次创建会话时的初始化参数，结构与基础参数相同                 |
+
+**使用场景：**
+- RPC调用函数
+- 需要会话保持的页面
+
+```python
+# 第一次请求：触发翻页按钮，将对应的函数暴露到window中
+{
+    'session_id': 'my_session_001',
+    'init_session': {
+        'url': 'https://example.com/login',
+        'script': [{'pattern': 'c:#next_page', 'function': 'click'}]
+    }
+}
+
+# 后续请求：复用暴露到window中的函数
+{
+    'session_id': 'my_session_001',
+    'url': 'https://example.com/dashboard',
+    'script':[{'run_js':'window.next_page()'}]
+}
+```
+
+---
+
+### run_time 与 run_time_enable 的区别
+
+这两个参数容易混淆，但作用不同：
+
+| 参数            | 作用                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| run_time        | 是否需要执行 JS 脚本。设为 True 时才能使用 script 中的 `run_js`      |
+| run_time_enable | 是否启用 CDP Runtime.enable。控制是否监听 JS 执行上下文（默认 True） |
+
+**简单理解：**
+- `run_time`: 开关，决定"要不要执行 JS"
+- `run_time_enable`: 高级选项，控制 JS 执行的底层机制
+
+一般情况下，只需关注 `run_time`，`run_time_enable` 保持默认即可。
+
+---
+
+### 元素匹配语法
+
+本项目基于 DrissionPage，元素匹配语法与其一致。常用前缀：
+
+| 前缀 | 说明         | 示例                                             |
+| ---- | ------------ | ------------------------------------------------ |
+| `c:` | CSS 选择器   | `c:#id`、`c:.class`、`c:div.btn`                 |
+| `x:` | XPath 表达式 | `x://div[@id="main"]`、`x://span[text()="确定"]` |
+
+更多语法详见 [DrissionPage 文档](https://www.drissionpage.cn/ChromiumPage/ele)
+
+---
+
+### wait_urls 详解
+
+wait_urls 支持两种格式：
+
+**1. 字符串格式**
+
+```python
+'wait_urls': ['**cap_union_new_getcapbysig**']
+```
+
+**2. 字典格式**
+
+| 参数          | 类型        | 说明                                                                           |
+| ------------- | ----------- | ------------------------------------------------------------------------------ |
+| url           | string      | 匹配的链接                                                                     |
+| abort         | bool        | 是否截断该链接的请求(默认False)                                                |
+| fill_data     | string/dict | 将匹配到的链接填充fill_data中的数据包                                          |
+| amount        | int         | 等待该链接的最小数量                                                           |
+| keep_proxy    | bool        | 保持代理(**保持代理的请求将通过Fetch请求，并非浏览器请求**)                    |
+| status_code   | int         | 替换状态码(**如果本来响应的请求状态码为3开头时则不予替换**)                    |
+| random_ja3    | bool        | 是否使用随机指纹(**仅支持与`keep_proxy`一同使用**)                             |
+| impersonate   | string      | 指定TLS指纹模拟(**仅支持与`keep_proxy`一同使用，默认chrome120**)               |
+| headers       | dict        | 指定响应头(**仅支持与`fill_data`或`keep_proxy`一同使用**)                      |
+| body          | string      | 匹配请求体的模式（用于区分相同URL但请求体不同的请求）                          |
+| fill_amount   | int         | 填充数据包的次数(**仅支持与`fill_data`一同使用，默认99**)                      |
+| fill_data_b64 | bool        | 填充的数据包是否Base64编码(**仅支持与`fill_data`一同使用**)                    |
+| modify        | dict        | 动态修改响应内容(**参数be_replace:被替换的字符串，参数to_replace:替换的字符串**) |
+| get_response  | bool        | 返回响应内容                                                                   |
+
+```python
+'wait_urls': [
+    {
+        'url': 'https://example.com/api/**',
+        'fill_data': "{'result': '测试'}",
+        'body': '**id=**'
+    }
+]
+```
+
+---
+
+### ensure_eles 详解
+
+| 参数           | 类型   | 说明                                                       |
+| -------------- | ------ | ---------------------------------------------------------- |
+| pattern        | string | 匹配的元素，与DP中的规则一致                               |
+| ensure_txt_len | int    | 确保匹配的元素下的文本长度(默认0) PS：指的是该元素下的所有文本 |
+
+```python
+'ensure_eles': [
+    {'pattern': 'c:div#contentFrame', 'ensure_txt_len': 2},
+    {'pattern': 'c:span[ng-bind="enquiry.name"]', 'ensure_txt_len': 2},
+]
+```
+
+---
+
+### script 详解
+
+| 参数         | 类型   | 说明                                                                         |
+| ------------ | ------ | ---------------------------------------------------------------------------- |
+| pattern      | string | 匹配的元素，与DP中的规则一致                                                 |
+| function     | string | 对匹配的元素进行的操作(支持click/double_click/input)                         |
+| value        | string | input中要输入的值（当value为'activate'时会创建临时文件用于文件上传）         |
+| by_js        | bool   | click时是否使用js点击(默认False)                                             |
+| after_iframe | bool   | 是否在iframe中查找元素（需配合`iframe_ele`使用）                             |
+| run_js       | string | 页面执行的js语句 PS：**使用run_js时必须确保参数run_time为True**              |
+| wait_async   | bool   | run_js时是否等待异步操作完成(默认False)                                      |
+| suffix       | string | input为activate时的文件后缀(默认jpg)                                         |
+
+```python
+'script': [
+    {'pattern': 'c:span.tabs-item:nth-of-type(3)', 'function': 'click'},
+    {'pattern': 'c:span.btn-name', 'function': 'click', 'by_js': True},
+    {'pattern': 'c:input#username', 'function': 'input', 'value': 'test'},
+    {'run_js': 'document.title', 'wait_async': False}
+]
+```
+
+---
+
+## 返回值结构
+
+接口返回 JSON 格式数据，结构如下：
+
+**成功时：**
+
+```json
+{
+    "status": "success",
+    "text": "<html>...</html>",
+    "key": "aHR0cHM6Ly9leGFtcGxlLmNvbQ==",
+    "wait_urls": [
+        {"url": "https://example.com/api/data", "data": "...", "headers": {...}, "method": "GET"}
+    ],
+    "wait_eles": {
+        "c:div#content": {"load": true, "txt_len": 100}
+    },
+    "js_result": [
+        {"js": "document.title", "result": "\"页面标题\""}
+    ],
+    "cookies": {"session": "xxx", "token": "yyy"},
+    "session_storage": {"key1": "value1"},
+    "local_storage": {"key2": "value2"},
+    "keep_proxy": {"http": "http://proxy:port", "https": "http://proxy:port"},
+    "error_reason": null,
+    "step_spend_time": {
+        "get_chrome_time": 0.05,
+        "init_chrome": 0.01,
+        "get_url": 1.23,
+        "_total": 2.5
+    }
+}
+```
+
+**失败时：**
+
+```json
+{
+    "status": "fail",
+    "message": "超时了",
+    "error_reason": "条件{'pattern': 'c:#not-exist'}不满足",
+    "step_spend_time": {...}
+}
+```
+
+**字段说明：**
+
+| 字段            | 说明                                                   |
+| --------------- | ------------------------------------------------------ |
+| status          | 请求状态：`success` 或 `fail`                          |
+| text            | 页面 HTML（需设置 `html: true`）                       |
+| key             | 缓存 key（使用或生成的）                               |
+| wait_urls       | 拦截到的请求列表                                       |
+| wait_eles       | 等待元素的加载状态                                     |
+| js_result       | JS 执行结果列表                                        |
+| cookies         | 页面 Cookies（需设置 `cookies: true`）                 |
+| session_storage | 页面 sessionStorage（需设置 `session_storage: true`）  |
+| local_storage   | 页面 localStorage（需设置 `local_storage: true`）      |
+| keep_proxy      | 保持的代理 IP（使用 `keep_proxy` 时返回）              |
+| error_reason    | 失败原因                                               |
+| step_spend_time | 各步骤耗时统计                                         |
+| message         | 失败时的错误信息                                       |

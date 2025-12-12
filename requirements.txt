@@ -1,0 +1,10 @@
+requests
+waitress
+flask
+loguru
+DrissionPage==4.0.5.6
+numpy
+redis
+pymongo
+curl_cffi
+fake_useragent
