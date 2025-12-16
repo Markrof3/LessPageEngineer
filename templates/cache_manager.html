@@ -61,10 +61,28 @@
             font-size: 12px;
             word-break: break-all;
             transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
         }
         .key-item:hover { background: #f8f9fa; }
         .key-item.selected { background: #e8f4fd; border-left: 3px solid #667eea; }
         .key-item:last-child { border-bottom: none; }
+        .key-text { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .key-delete-btn {
+            background: transparent;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+        .key-item:hover .key-delete-btn { opacity: 1; }
+        .key-delete-btn:hover { background: #e74c3c; color: #fff; }
         .count-badge {
             background: #667eea;
             color: #fff;
@@ -264,7 +282,10 @@ function renderKeyList(keys) {
     html += '<div class="key-list">';
     keys.forEach(key => {
         const selected = key === currentKey ? 'selected' : '';
-        html += `<div class="key-item ${selected}" onclick="selectKey('${encodeURIComponent(key)}')">${escapeHtml(key)}</div>`;
+        html += `<div class="key-item ${selected}" data-key="${escapeHtml(key)}" onclick="selectKey('${encodeURIComponent(key)}')">
+            <span class="key-text">${escapeHtml(key)}</span>
+            <button class="key-delete-btn" onclick="deleteKeyFromList(event, '${encodeURIComponent(key)}')" title="删除此缓存">🗑️</button>
+        </div>`;
     });
     html += '</div>';
     container.innerHTML = html;
@@ -278,7 +299,7 @@ async function selectKey(encodedKey) {
     // 更新选中状态
     document.querySelectorAll('.key-item').forEach(el => {
         el.classList.remove('selected');
-        if (el.textContent === key) {
+        if (el.getAttribute('data-key') === key) {
             el.classList.add('selected');
         }
     });
@@ -723,6 +744,31 @@ async function saveNewUrl() {
         }
     } catch (e) {
         document.getElementById('addUrlStatus').innerHTML = `<div class="status error">请求失败: ${e.message}</div>`;
+    }
+}
+
+// 从左侧列表直接删除 key
+async function deleteKeyFromList(event, encodedKey) {
+    event.stopPropagation(); // 阻止触发 selectKey
+    const key = decodeURIComponent(encodedKey);
+    if (!confirm(`确定删除缓存: ${key}?\n\n将同时删除 Redis 和 Runtime 中的相关缓存。`)) return;
+    
+    try {
+        const res = await fetch(`/cache/${encodeURIComponent(key)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            // 如果删除的是当前选中的 key，清空详情面板
+            if (currentKey === key) {
+                currentKey = null;
+                currentData = null;
+                document.getElementById('detailPanel').innerHTML = '<div class="empty-state">← 选择一个缓存项查看详情</div>';
+            }
+            loadKeys();
+        } else {
+            alert(data.message);
+        }
+    } catch (e) {
+        alert('删除失败: ' + e.message);
     }
 }
 
