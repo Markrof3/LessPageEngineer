@@ -2,9 +2,11 @@ import time
 import threading
 import argparse
 import requests
+import base64
 
+import os
 from waitress import serve
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 
 from LessPageEngineer.CentralControl import Control
 import LessPageEngineer.Settings as base_settings
@@ -12,7 +14,8 @@ import LessPageEngineer.Settings as base_settings
 
 class LessPageEngineeringCreator:
     def __init__(self, settings=None):
-        self.app = Flask(__name__)
+        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+        self.app = Flask(__name__, template_folder=template_dir)
         self._setup_routes()
 
         # 实例变量代替全局变量
@@ -39,6 +42,28 @@ class LessPageEngineeringCreator:
         @self.app.route('/uploadUrl', methods=['POST'])
         def handle_upload():
             return self._handle_upload_request()
+
+        # ========== 缓存管理路由（统一管理，以 MongoDB/Pickle 为主） ==========
+        @self.app.route('/cache', methods=['GET'])
+        def cache_manager_ui():
+            self._init_chrome()
+            return render_template('cache_manager.html')
+
+        @self.app.route('/cache/keys', methods=['GET'])
+        def list_cache_keys():
+            return self._handle_cache_list_keys()
+
+        @self.app.route('/cache/<path:key>', methods=['GET'])
+        def get_cache(key):
+            return self._handle_cache_get(key)
+
+        @self.app.route('/cache/<path:key>', methods=['POST'])
+        def set_cache(key):
+            return self._handle_cache_set(key)
+
+        @self.app.route('/cache/<path:key>', methods=['DELETE'])
+        def delete_cache(key):
+            return self._handle_cache_delete(key)
 
     def _handle_upload_request(self):
         """处理上传请求的核心逻辑"""
@@ -130,6 +155,148 @@ class LessPageEngineeringCreator:
             params={'port': self.port}
         )
         print(f"Shutdown response: {resp.json()}")
+
+    # ========== 缓存管理方法（统一管理，以 MongoDB/Pickle 为主） ==========
+    def _process_bytes_body(self, data):
+        """处理数据中的 bytes 类型 body，转为可 JSON 序列化的格式"""
+        if not isinstance(data, dict):
+            return
+        for k, v in data.items():
+            if k.startswith('http') and isinstance(v, dict) and 'body' in v:
+                if isinstance(v['body'], bytes):
+                    v['_body_is_bytes'] = True
+                    try:
+                        v['body'] = v['body'].decode('utf-8')
+                    except UnicodeDecodeError:
+                        v['body'] = base64.b64encode(v['body']).decode('utf-8')
+                        v['_body_is_base64'] = True
+
+    def _restore_bytes_body(self, data):
+        """将标记的 body 转回 bytes 类型"""
+        if not isinstance(data, dict):
+            return
+        for k, v in data.items():
+            if k.startswith('http') and isinstance(v, dict) and 'body' in v:
+                if v.get('_body_is_bytes'):
+                    if v.get('_body_is_base64'):
+                        v['body'] = base64.b64decode(v['body'])
+                    else:
+                        v['body'] = v['body'].encode('utf-8')
+                v.pop('_body_is_bytes', None)
+                v.pop('_body_is_base64', None)
+
+    def _get_primary_cache(self):
+        """获取主缓存实例（MongoDB/Pickle）"""
+        if self.control is None:
+            self._init_chrome()
+        if self.control is None:
+            return None, '初始化失败'
+        return self.control.data_manger, None
+
+    def _handle_cache_list_keys(self):
+        """列出缓存 key（从主缓存获取）"""
+        cache, error = self._get_primary_cache()
+        if error:
+            return jsonify({'status': 'fail', 'message': error}), 400
+        
+        try:
+            keys = cache.list_keys()
+            return jsonify({'status': 'success', 'data': keys, 'count': len(keys)}), 200
+        except Exception as e:
+            return jsonify({'status': 'fail', 'message': str(e)}), 500
+
+    def _handle_cache_get(self, key):
+        """获取缓存内容（从主缓存获取）"""
+        cache, error = self._get_primary_cache()
+        if error:
+            return jsonify({'status': 'fail', 'message': error}), 400
+        
+        try:
+            data = cache.load_data(key)
+            if data is None:
+                return jsonify({'status': 'fail', 'message': f'key不存在: {key}'}), 404
+            
+            # 处理 MongoDB 的 _id
+            if '_id' in data:
+                data['_id'] = str(data['_id'])
+            # 处理 datetime 对象序列化
+            if 'update_time' in data:
+                data['update_time'] = str(data['update_time'])
+            # 处理 bytes 类型的 body
+            self._process_bytes_body(data)
+            
+            return jsonify({'status': 'success', 'data': data}), 200
+        except Exception as e:
+            return jsonify({'status': 'fail', 'message': str(e)}), 500
+
+    def _handle_cache_set(self, key):
+        """设置缓存内容（同步更新所有缓存）"""
+        cache, error = self._get_primary_cache()
+        if error:
+            return jsonify({'status': 'fail', 'message': error}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'fail', 'message': '请求体不能为空'}), 400
+        
+        try:
+            # 移除元数据字段
+            data.pop('_id', None)
+            data.pop('key', None)
+            data.pop('update_time', None)
+            
+            # 将 body 转回 bytes 类型
+            self._restore_bytes_body(data)
+            
+            # 1. 保存到主缓存（MongoDB/Pickle）
+            cache.dump_data(key, data, replace=True)
+            
+            # 2. 同步到 Runtime 缓存（如果存在相同 key）
+            if self.control.run_time_cache.search_source_dict(key):
+                self.control.run_time_cache.update_source_dict(key, data)
+            
+            # 3. 同步到 Redis 缓存（如果启用且存在相同 key 的 URL）
+            if self.control.redis_cache:
+                for url_key, url_data in data.items():
+                    if url_key.startswith('http') and isinstance(url_data, dict):
+                        headers = url_data.get('headers', {})
+                        body = url_data.get('body', '')
+                        if isinstance(body, bytes):
+                            body = base64.b64encode(body).decode('utf-8')
+                        self.control.redis_cache.set_cache(url_key, headers, body)
+            
+            return jsonify({'status': 'success', 'message': f'缓存已更新: {key}（已同步到所有缓存）'}), 200
+        except Exception as e:
+            return jsonify({'status': 'fail', 'message': str(e)}), 500
+
+    def _handle_cache_delete(self, key):
+        """删除缓存（同步删除所有缓存）"""
+        cache, error = self._get_primary_cache()
+        if error:
+            return jsonify({'status': 'fail', 'message': error}), 400
+        
+        try:
+            # 先获取数据，用于同步删除 Redis 中的 URL
+            data = cache.load_data(key)
+            
+            # 1. 从主缓存删除
+            result = cache.delete_data(key)
+            
+            # 2. 从 Runtime 缓存删除
+            if self.control.run_time_cache.search_source_dict(key):
+                self.control.run_time_cache.drop_source_dict(key)
+            
+            # 3. 从 Redis 缓存删除相关 URL
+            if self.control.redis_cache and data:
+                for url_key in data.keys():
+                    if url_key.startswith('http'):
+                        self.control.redis_cache.delete_cache(url_key)
+            
+            if result:
+                return jsonify({'status': 'success', 'message': f'缓存已删除: {key}（已同步删除所有缓存）'}), 200
+            return jsonify({'status': 'fail', 'message': f'key不存在: {key}'}), 404
+        except Exception as e:
+            return jsonify({'status': 'fail', 'message': str(e)}), 500
 
     def run(self):
         """启动服务器的主运行方法"""
