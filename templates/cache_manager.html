@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LPE 缓存管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 300;
+            font-size: 2rem;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 20px;
+        }
+        .toolbar { display: flex; gap: 8px; margin-bottom: 15px; }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-primary:hover { background: #5a6fd6; }
+        .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #27ae60; color: #fff; }
+        .btn-success:hover { background: #219a52; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .key-list {
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .key-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            transition: background 0.2s;
+        }
+        .key-item:hover { background: #f8f9fa; }
+        .key-item.selected { background: #e8f4fd; border-left: 3px solid #667eea; }
+        .key-item:last-child { border-bottom: none; }
+        .count-badge {
+            background: #667eea;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 6px;
+        }
+        .detail-panel { min-height: 400px; }
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-title {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        .sub-key-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .sub-key-item {
+            padding: 6px 12px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: monospace;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .sub-key-item:hover { border-color: #667eea; }
+        .sub-key-item.selected { background: #667eea; color: #fff; border-color: #667eea; }
+        .field-group { margin-bottom: 15px; }
+        .field-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .field-value {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .field-value.body-field { min-height: 200px; }
+        .field-value:focus { outline: none; border-color: #667eea; }
+        .status-code-input {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .status {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #cce5ff; color: #004085; }
+        .base64-tag {
+            display: inline-block;
+            background: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        .bytes-tag {
+            display: inline-block;
+            background: #17a2b8;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        .field-hint {
+            font-size: 11px;
+            color: #856404;
+            background: #fff3cd;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .loading { text-align: center; padding: 20px; color: #666; }
+        .sync-info {
+            font-size: 11px;
+            color: #666;
+            background: #f0f0f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .sub-key-item.hidden {
+            display: none;
+        }
+        .sub-key-item.match {
+            border-color: #27ae60;
+            background: #e8f5e9;
+        }
+        .sub-key-item.match.selected {
+            background: #27ae60;
+            color: #fff;
+        }
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗄️ LPE 缓存管理</h1>
+        <div class="main-layout">
+            <div class="card">
+                <div class="toolbar">
+                    <button class="btn btn-primary btn-sm" onclick="loadKeys()">🔄 刷新</button>
+                    <button class="btn btn-success btn-sm" onclick="showAddForm()">➕ 新增</button>
+                </div>
+                <div id="keyListContainer">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+            <div class="card detail-panel" id="detailPanel">
+                <div class="empty-state">← 选择一个缓存项查看详情</div>
+            </div>
+        </div>
+    </div>
+<script>
+let currentKey = null;
+let currentData = null;
+let currentSubKey = null;
+
+async function loadKeys() {
+    const container = document.getElementById('keyListContainer');
+    container.innerHTML = '<div class="loading">加载中...</div>';
+    try {
+        const res = await fetch('/cache/keys');
+        const data = await res.json();
+        if (data.status === 'success') {
+            renderKeyList(data.data);
+        } else {
+            container.innerHTML = `<div class="status error">${data.message}</div>`;
+        }
+    } catch (e) {
+        container.innerHTML = `<div class="status error">请求失败: ${e.message}</div>`;
+    }
+}
+
+function renderKeyList(keys) {
+    const container = document.getElementById('keyListContainer');
+    if (!keys.length) {
+        container.innerHTML = '<div class="empty-state">暂无缓存数据</div>';
+        return;
+    }
+    let html = `<div style="margin-bottom:10px;color:#666;font-size:13px;">共 <span class="count-badge">${keys.length}</span> 条</div>`;
+    html += '<div class="key-list">';
+    keys.forEach(key => {
+        const selected = key === currentKey ? 'selected' : '';
+        html += `<div class="key-item ${selected}" onclick="selectKey('${encodeURIComponent(key)}')">${escapeHtml(key)}</div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+async function selectKey(encodedKey) {
+    const key = decodeURIComponent(encodedKey);
+    currentKey = key;
+    currentSubKey = null;
+    
+    // 更新选中状态
+    document.querySelectorAll('.key-item').forEach(el => {
+        el.classList.remove('selected');
+        if (el.textContent === key) {
+            el.classList.add('selected');
+        }
+    });
+    
+    const panel = document.getElementById('detailPanel');
+    panel.innerHTML = '<div class="loading">加载中...</div>';
+    
+    try {
+        const res = await fetch(`/cache/${encodeURIComponent(key)}`);
+        const data = await res.json();
+        if (data.status === 'success') {
+            currentData = data.data;
+            renderDetail(key, data.data);
+        } else {
+            panel.innerHTML = `<div class="status error">${data.message}</div>`;
+        }
+    } catch (e) {
+        panel.innerHTML = `<div class="status error">请求失败: ${e.message}</div>`;
+    }
+}
+
+function renderDetail(key, data) {
+    const panel = document.getElementById('detailPanel');
+    
+    const subKeys = Object.keys(data).filter(k => k.startsWith('http'));
+    const metaKeys = Object.keys(data).filter(k => !k.startsWith('http'));
+    
+    let html = `
+        <div class="detail-header">
+            <span class="detail-title">📦 ${escapeHtml(key)}</span>
+            <div>
+                <button class="btn btn-primary btn-sm" onclick="saveCurrentCache()">💾 保存</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCurrentCache()">🗑️ 删除</button>
+            </div>
+        </div>
+        <div class="sync-info">💡 修改后将自动同步到 Redis 和 Runtime 缓存</div>`;
+    
+    if (metaKeys.length > 0) {
+        html += '<div class="field-group"><div class="field-label">元数据</div><div style="font-size:12px;color:#666;">';
+        metaKeys.forEach(k => {
+            html += `<span style="margin-right:15px;"><b>${k}:</b> ${escapeHtml(String(data[k]))}</span>`;
+        });
+        html += '</div></div>';
+    }
+    
+    if (subKeys.length > 0) {
+        html += `<div class="field-group">
+            <div class="field-label">URL 列表 (<span id="urlCount">${subKeys.length}</span>/${subKeys.length}) 
+                <button class="btn btn-success btn-sm" style="margin-left:10px;" onclick="showAddUrlForm()">➕ 添加 URL</button>
+            </div>
+            <div style="margin-bottom:10px;">
+                <input type="text" id="urlSearchInput" class="search-input" placeholder="🔍 搜索 URL、Headers 或 Body..." oninput="filterUrls()">
+            </div>
+            <div class="sub-key-list" id="subKeyList">`;
+        subKeys.forEach((sk, idx) => {
+            const selected = idx === 0 ? 'selected' : '';
+            html += `<div class="sub-key-item ${selected}" data-url="${escapeHtml(sk)}" onclick="selectSubKey('${encodeURIComponent(sk)}')" title="${escapeHtml(sk)}">${escapeHtml(sk)}</div>`;
+        });
+        html += '</div></div>';
+        
+        currentSubKey = subKeys[0];
+        html += '<div id="subKeyDetail"></div>';
+    } else {
+        html += `
+            <div class="field-group">
+                <div class="field-label">内容</div>
+                <textarea class="field-value body-field" id="rawContent">${escapeHtml(JSON.stringify(data, null, 2))}</textarea>
+            </div>`;
+    }
+    
+    html += '<div id="statusMsg"></div>';
+    panel.innerHTML = html;
+    
+    if (subKeys.length > 0) {
+        renderSubKeyDetail(currentSubKey);
+    }
+}
+
+function selectSubKey(encodedSubKey) {
+    const subKey = decodeURIComponent(encodedSubKey);
+    currentSubKey = subKey;
+    
+    document.querySelectorAll('.sub-key-item').forEach(el => el.classList.remove('selected'));
+    event.target.classList.add('selected');
+    
+    renderSubKeyDetail(subKey);
+}
+
+function renderSubKeyDetail(subKey) {
+    const container = document.getElementById('subKeyDetail');
+    const item = currentData[subKey];
+    
+    if (!item || typeof item !== 'object') {
+        container.innerHTML = '<div class="status info">无数据</div>';
+        return;
+    }
+    
+    const isBase64 = item._body_is_base64 === true;
+    const isBytes = item._body_is_bytes === true;
+    const statusCode = item.status_code || item.statusCode || '';
+    const headers = item.headers || {};
+    const body = item.body || '';
+    
+    let bodyLabel = 'Body';
+    let bodyHint = '';
+    if (isBytes) {
+        if (isBase64) {
+            bodyLabel = 'Body <span class="base64-tag">BASE64</span> <span class="bytes-tag">BYTES</span>';
+            bodyHint = '<div class="field-hint">⚠️ 原始数据为二进制，当前显示为 Base64 编码。修改后请提交 Base64 格式的内容。</div>';
+        } else {
+            bodyLabel = 'Body <span class="bytes-tag">BYTES</span>';
+            bodyHint = '<div class="field-hint">原始数据为二进制（UTF-8 可解码），修改后将自动转回 bytes。</div>';
+        }
+    }
+    
+    let html = `
+        <div class="field-group">
+            <div class="field-label">
+                URL: <span style="font-weight:normal;color:#333;">${escapeHtml(subKey)}</span>
+                <button class="btn btn-danger btn-sm" style="margin-left:10px;" onclick="deleteSubKey('${encodeURIComponent(subKey)}')">🗑️ 删除此 URL</button>
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Status Code</div>
+            <input type="text" class="status-code-input" id="editStatusCode" value="${statusCode}">
+        </div>
+        <div class="field-group">
+            <div class="field-label">Headers (JSON)</div>
+            <textarea class="field-value" id="editHeaders">${escapeHtml(JSON.stringify(headers, null, 2))}</textarea>
+        </div>
+        <div class="field-group">
+            <div class="field-label">${bodyLabel}</div>
+            ${bodyHint}
+            <textarea class="field-value body-field" id="editBody">${escapeHtml(typeof body === 'string' ? body : JSON.stringify(body))}</textarea>
+        </div>`;
+    
+    container.innerHTML = html;
+}
+
+async function saveCurrentCache() {
+    if (!currentKey) return;
+    
+    if (currentSubKey && currentData[currentSubKey]) {
+        try {
+            const statusCode = document.getElementById('editStatusCode')?.value;
+            const headersStr = document.getElementById('editHeaders')?.value;
+            const body = document.getElementById('editBody')?.value;
+            
+            if (headersStr) {
+                currentData[currentSubKey].headers = JSON.parse(headersStr);
+            }
+            if (body !== undefined) {
+                currentData[currentSubKey].body = body;
+            }
+            if (statusCode) {
+                currentData[currentSubKey].status_code = parseInt(statusCode) || statusCode;
+            }
+        } catch (e) {
+            showStatus('error', 'Headers JSON 格式错误: ' + e.message);
+            return;
+        }
+    }
+    
+    const saveData = {...currentData};
+    delete saveData._id;
+    delete saveData.key;
+    delete saveData.update_time;
+    
+    try {
+        const res = await fetch(`/cache/${encodeURIComponent(currentKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(saveData)
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showStatus('success', data.message);
+        } else {
+            showStatus('error', data.message);
+        }
+    } catch (e) {
+        showStatus('error', '请求失败: ' + e.message);
+    }
+}
+
+async function deleteCurrentCache() {
+    if (!currentKey) return;
+    if (!confirm(`确定删除缓存: ${currentKey}?\n\n将同时删除 Redis 和 Runtime 中的相关缓存。`)) return;
+    
+    try {
+        const res = await fetch(`/cache/${encodeURIComponent(currentKey)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            currentKey = null;
+            currentData = null;
+            loadKeys();
+            document.getElementById('detailPanel').innerHTML = '<div class="empty-state">← 选择一个缓存项查看详情</div>';
+        } else {
+            alert(data.message);
+        }
+    } catch (e) {
+        alert('删除失败: ' + e.message);
+    }
+}
+
+function showAddForm() {
+    currentKey = null;
+    currentData = {};
+    currentSubKey = null;
+    
+    const panel = document.getElementById('detailPanel');
+    panel.innerHTML = `
+        <div class="detail-header">
+            <span class="detail-title">➕ 新增缓存</span>
+        </div>
+        <div class="sync-info">💡 新增后将自动同步到 Redis 和 Runtime 缓存</div>
+        <div class="field-group">
+            <div class="field-label">Key</div>
+            <input type="text" class="field-value" id="newKey" style="min-height:auto;padding:10px;" placeholder="输入缓存 Key">
+        </div>
+        <div class="field-group">
+            <div class="field-label">内容 (JSON)</div>
+            <textarea class="field-value body-field" id="newContent">{\n  \n}</textarea>
+        </div>
+        <button class="btn btn-primary" onclick="saveNewCache()">💾 保存</button>
+        <div id="statusMsg"></div>`;
+}
+
+async function saveNewCache() {
+    const key = document.getElementById('newKey').value.trim();
+    const content = document.getElementById('newContent').value;
+    
+    if (!key) {
+        showStatus('error', '请输入 Key');
+        return;
+    }
+    
+    let jsonData;
+    try {
+        jsonData = JSON.parse(content);
+    } catch (e) {
+        showStatus('error', 'JSON 格式错误: ' + e.message);
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/cache/${encodeURIComponent(key)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jsonData)
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showStatus('success', data.message);
+            loadKeys();
+        } else {
+            showStatus('error', data.message);
+        }
+    } catch (e) {
+        showStatus('error', '请求失败: ' + e.message);
+    }
+}
+
+function showStatus(type, msg) {
+    const el = document.getElementById('statusMsg');
+    if (el) el.innerHTML = `<div class="status ${type}">${msg}</div>`;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 删除指定的 URL（子 key）
+async function deleteSubKey(encodedSubKey) {
+    const subKey = decodeURIComponent(encodedSubKey);
+    if (!currentKey || !currentData) return;
+    if (!confirm(`确定删除此 URL 缓存?\n\n${subKey}`)) return;
+    
+    // 从 currentData 中删除
+    delete currentData[subKey];
+    
+    // 保存更新后的数据
+    const saveData = {...currentData};
+    delete saveData._id;
+    delete saveData.key;
+    delete saveData.update_time;
+    
+    try {
+        const res = await fetch(`/cache/${encodeURIComponent(currentKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(saveData)
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            // 重新加载详情
+            selectKey(encodeURIComponent(currentKey));
+            showStatus('success', 'URL 已删除');
+        } else {
+            showStatus('error', data.message);
+        }
+    } catch (e) {
+        showStatus('error', '请求失败: ' + e.message);
+    }
+}
+
+// 显示添加 URL 表单
+function showAddUrlForm() {
+    const container = document.getElementById('subKeyDetail');
+    container.innerHTML = `
+        <div class="field-group">
+            <div class="field-label">新 URL</div>
+            <input type="text" class="field-value" id="newUrlKey" style="min-height:auto;padding:10px;" placeholder="https://example.com/api/data">
+        </div>
+        <div class="field-group">
+            <div class="field-label">Status Code</div>
+            <input type="text" class="status-code-input" id="newStatusCode" value="200">
+        </div>
+        <div class="field-group">
+            <div class="field-label">Headers (JSON)</div>
+            <textarea class="field-value" id="newHeaders">{
+  "Content-Type": "application/json"
+}</textarea>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Body</div>
+            <textarea class="field-value body-field" id="newBody"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="saveNewUrl()">💾 添加</button>
+            <button class="btn" style="background:#eee;" onclick="renderSubKeyDetail(currentSubKey)">取消</button>
+        </div>
+        <div id="addUrlStatus"></div>`;
+    
+    // 取消选中状态
+    document.querySelectorAll('.sub-key-item').forEach(el => el.classList.remove('selected'));
+}
+
+// 搜索过滤 URL
+function filterUrls() {
+    const keyword = document.getElementById('urlSearchInput')?.value.toLowerCase().trim();
+    const subKeyItems = document.querySelectorAll('.sub-key-item');
+    const subKeys = Object.keys(currentData).filter(k => k.startsWith('http'));
+    
+    let matchCount = 0;
+    
+    subKeyItems.forEach(item => {
+        const url = item.getAttribute('data-url');
+        const urlData = currentData[url];
+        
+        if (!keyword) {
+            // 无搜索词，显示所有
+            item.classList.remove('hidden', 'match');
+            matchCount++;
+            return;
+        }
+        
+        // 搜索 URL
+        let isMatch = url.toLowerCase().includes(keyword);
+        
+        // 搜索 Headers
+        if (!isMatch && urlData?.headers) {
+            const headersStr = JSON.stringify(urlData.headers).toLowerCase();
+            isMatch = headersStr.includes(keyword);
+        }
+        
+        // 搜索 Body
+        if (!isMatch && urlData?.body) {
+            const bodyStr = typeof urlData.body === 'string' ? urlData.body.toLowerCase() : JSON.stringify(urlData.body).toLowerCase();
+            isMatch = bodyStr.includes(keyword);
+        }
+        
+        if (isMatch) {
+            item.classList.remove('hidden');
+            item.classList.add('match');
+            matchCount++;
+        } else {
+            item.classList.add('hidden');
+            item.classList.remove('match');
+        }
+    });
+    
+    // 更新计数
+    const countEl = document.getElementById('urlCount');
+    if (countEl) {
+        countEl.textContent = matchCount;
+    }
+}
+
+// 保存新 URL
+async function saveNewUrl() {
+    const urlKey = document.getElementById('newUrlKey').value.trim();
+    const statusCode = document.getElementById('newStatusCode').value.trim();
+    const headersStr = document.getElementById('newHeaders').value;
+    const body = document.getElementById('newBody').value;
+    
+    if (!urlKey) {
+        document.getElementById('addUrlStatus').innerHTML = '<div class="status error">请输入 URL</div>';
+        return;
+    }
+    
+    if (!urlKey.startsWith('http')) {
+        document.getElementById('addUrlStatus').innerHTML = '<div class="status error">URL 必须以 http 开头</div>';
+        return;
+    }
+    
+    let headers;
+    try {
+        headers = JSON.parse(headersStr);
+    } catch (e) {
+        document.getElementById('addUrlStatus').innerHTML = '<div class="status error">Headers JSON 格式错误</div>';
+        return;
+    }
+    
+    // 添加到 currentData
+    currentData[urlKey] = {
+        status_code: parseInt(statusCode) || 200,
+        headers: headers,
+        body: body
+    };
+    
+    // 保存
+    const saveData = {...currentData};
+    delete saveData._id;
+    delete saveData.key;
+    delete saveData.update_time;
+    
+    try {
+        const res = await fetch(`/cache/${encodeURIComponent(currentKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(saveData)
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            // 重新加载详情，选中新添加的 URL
+            currentSubKey = urlKey;
+            selectKey(encodeURIComponent(currentKey));
+        } else {
+            document.getElementById('addUrlStatus').innerHTML = `<div class="status error">${data.message}</div>`;
+        }
+    } catch (e) {
+        document.getElementById('addUrlStatus').innerHTML = `<div class="status error">请求失败: ${e.message}</div>`;
+    }
+}
+
+loadKeys();
+</script>
+</body>
+</html>

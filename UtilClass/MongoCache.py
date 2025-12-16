@@ -1,6 +1,6 @@
 import threading
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 import pymongo
 from pymongo import MongoClient
@@ -171,6 +171,12 @@ class MongoCache:
             return self._collection.count_documents({'key': key}) > 0
 
         return self._execute_with_retry(_exists)
+
+    def list_keys(self) -> List[str]:
+        """列出所有key"""
+        def _list():
+            return [doc['key'] for doc in self._collection.find({}, {'key': 1, '_id': 0})]
+        return self._execute_with_retry(_list)
 
     def close(self):
         """关闭连接（连接池模式下由池管理，此方法保留兼容性）"""

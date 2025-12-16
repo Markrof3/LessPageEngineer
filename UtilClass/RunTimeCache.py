@@ -42,3 +42,17 @@ class RunTimeCache:
             return None
         if self.all_source_dict.get(key):
             self._drop_source_dict(key)
+
+    def list_keys(self):
+        """列出所有缓存key"""
+        return list(self.all_source_dict.keys())
+
+    def update_source_dict(self, key, source_dict):
+        """更新指定key的缓存内容"""
+        if not key or not isinstance(key, str):
+            return False
+        if key in self.all_source_dict:
+            self.all_source_dict[key]['data'] = source_dict
+            self.all_source_dict[key]['update_time'] = round(time.time(), 1)
+            return True
+        return False

@@ -2,7 +2,7 @@ import threading
 import json
 from datetime import datetime
 from re import search
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Tuple
 
 import redis
 
@@ -209,6 +209,62 @@ class RedisCache:
                 pipe.execute()
 
         self._execute_with_retry(_upload)
+
+    def list_keys(self) -> List[str]:
+        """列出所有缓存的URL key"""
+        if not self._check_enabled():
+            return []
+
+        def _list():
+            body_keys = self._redis_con.hkeys(self.REDIS_KEY + self.RESPONSE_BODY_KEY)
+            return [k.decode() if isinstance(k, bytes) else k for k in body_keys]
+
+        return self._execute_with_retry(_list)
+
+    def get_cache(self, url_key: str) -> Optional[Dict[str, Any]]:
+        """获取指定URL的缓存内容"""
+        if not self._check_enabled():
+            return None
+
+        def _get():
+            headers = self._redis_con.hget(self.REDIS_KEY + self.RESPONSE_HEADERS_KEY, url_key)
+            body = self._redis_con.hget(self.REDIS_KEY + self.RESPONSE_BODY_KEY, url_key)
+            if not headers and not body:
+                return None
+            return {
+                'headers': json.loads(headers.decode()) if headers else {},
+                'body': body.decode() if body else ''
+            }
+
+        return self._execute_with_retry(_get)
+
+    def set_cache(self, url_key: str, headers: Dict, body: str) -> bool:
+        """设置指定URL的缓存"""
+        if not self._check_enabled():
+            return False
+
+        def _set():
+            with self._redis_con.pipeline() as pipe:
+                pipe.hset(self.REDIS_KEY + self.RESPONSE_HEADERS_KEY, url_key, json.dumps(headers, ensure_ascii=False))
+                pipe.hset(self.REDIS_KEY + self.RESPONSE_BODY_KEY, url_key, body)
+                pipe.execute()
+            return True
+
+        return self._execute_with_retry(_set)
+
+    def delete_cache(self, url_key: str) -> bool:
+        """删除指定URL的缓存"""
+        if not self._check_enabled():
+            return False
+
+        def _delete():
+            with self._redis_con.pipeline() as pipe:
+                pipe.hdel(self.REDIS_KEY + self.RESPONSE_HEADERS_KEY, url_key)
+                pipe.hdel(self.REDIS_KEY + self.RESPONSE_BODY_KEY, url_key)
+                result = pipe.execute()
+            return any(result)
+
+        return self._execute_with_retry(_delete)
 
     def close(self):
         """关闭连接（连接池模式下由池管理，此方法保留兼容性）"""

@@ -7,7 +7,7 @@ import requests
 import time
 import os
 
-BASE_URL = 'http://127.0.0.1:27888'
+BASE_URL = 'http://127.0.0.1:27889'
 
 
 class TestKeySave:
@@ -16,11 +16,15 @@ class TestKeySave:
     def test_key_save_creates_cache(self):
         """测试 key_save 创建缓存"""
         post_data = {
-            'url': 'https://www.baidu.com',
-            'timeout': 30,
-            'key_save': True,
+            # 'url': 'https://www.drissionpage.cn/',
+            # 'key': "aHR0cHM6Ly93d3cuZHJpc3Npb25wYWdlLmNuLw==",  # DP key
+            'timeout': 20,
+            'ensure_eles':[{'pattern':'c:#chat-textarea123'}],
+            # 'key_save': True,
+            'url': 'https://www.baidu.com/',
+            'key': "aHR0cHM6Ly93d3cuYmFpZHUuY29tLw==",  # 百度key
         }
-        
+
         resp = requests.post(f'{BASE_URL}/uploadUrl', json=post_data)
         result = resp.json()
         

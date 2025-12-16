@@ -206,7 +206,7 @@ class TaskHandle:
     # 加载route类
     def load_route(self):
         if (self.handle_data['key_save'] or self.handle_data.get('wait_urls') or self.handle_data[
-            'key_replace'] or self.handle_data.get('key')) and not self.chrome.route:
+            'key_replace'] or self.handle_data.get('key')) and (not self.chrome.route or (self.chrome.route and self.handle_data.get('key') and not self.run_time_cache.search_source_dict(self.handle_data['key']))):
             self.chrome.route = self._load_route(self.chrome)
         elif self.chrome.route:
             self._init_route_settings(self.chrome.route)
