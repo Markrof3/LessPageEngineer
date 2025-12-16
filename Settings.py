@@ -77,7 +77,7 @@ CHROME_USER_PATH = r'F:\chromeUserDir'
 # 浏览器缓存文件存放路径
 CHROME_CACHE_SAVE_PATH = r'F:\chromeCache'
 
-''' 本地数据文件 && 密钥 '''
+''' 本地数据文件 '''
 READ_LOCAL_FILE = True  # 是否读取本地数据文件(False的话则从MongoDB读取)
 LOCAL_FILE_PATH = os.path.dirname(os.path.abspath(__file__)) + '\\'
 

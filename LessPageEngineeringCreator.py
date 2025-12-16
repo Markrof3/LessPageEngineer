@@ -251,9 +251,8 @@ class LessPageEngineeringCreator:
             # 1. 保存到主缓存（MongoDB/Pickle）
             cache.dump_data(key, data, replace=True)
             
-            # 2. 同步到 Runtime 缓存（如果存在相同 key）
-            if self.control.run_time_cache.search_source_dict(key):
-                self.control.run_time_cache.update_source_dict(key, data)
+            # 2. 删除 Runtime 缓存，强制下次请求时从 MongoDB 重新加载
+            self.control.run_time_cache.drop_source_dict(key)
             
             # 3. 同步到 Redis 缓存（如果启用且存在相同 key 的 URL）
             if self.control.redis_cache:
