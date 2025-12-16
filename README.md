@@ -18,6 +18,7 @@
   - [ensure_eles 详解](#ensure_eles-详解)
   - [script 详解](#script-详解)
 - [返回值结构](#返回值结构)
+- [Web UI 缓存管理](#web-ui-缓存管理)
 
 ---
 
@@ -405,6 +406,25 @@ wait_urls 支持两种格式：
 | message         | 失败时的错误信息                                       |
 
 
+
+## Web UI 缓存管理
+
+服务启动后，访问 `http://127.0.0.1:{端口}/cache` 可打开缓存管理界面。
+
+![缓存管理界面](https://github.com/Markrof3/LessPageEngineer/blob/dev/assets/ui.png?raw=true)
+
+**功能说明：**
+
+| 功能 | 说明 |
+| --- | --- |
+| 查看缓存 | 左侧列表显示所有缓存 key，点击查看详情 |
+| 搜索 URL | 在 URL 列表上方搜索框中输入关键词，可搜索 URL、Headers、Body |
+| 编辑缓存 | 修改 Status Code、Headers、Body 后点击保存 |
+| 添加 URL | 点击"添加 URL"按钮，填写 URL、状态码、响应头、响应体 |
+| 删除 URL | 点击 URL 详情中的"删除此 URL"按钮 |
+| 删除缓存 | 点击右上角"删除"按钮删除整个缓存 |
+
+---
 
 ## 碎碎念
 
