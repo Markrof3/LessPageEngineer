@@ -91,7 +91,7 @@
             font-size: 11px;
             margin-left: 6px;
         }
-        .detail-panel { min-height: 400px; }
+        .detail-panel { min-height: 400px; overflow: hidden; }
         .detail-header {
             display: flex;
             justify-content: space-between;
@@ -104,6 +104,11 @@
             font-size: 14px;
             color: #333;
             font-weight: 500;
+            max-width: 80%;
+            overflow-x: auto;
+            white-space: nowrap;
+            display: block;
+            padding-bottom: 5px;
         }
         .sub-key-list {
             display: flex;
@@ -338,7 +343,7 @@ function renderDetail(key, data) {
         <div class="sync-info">💡 修改后将自动同步到 Redis 和 Runtime 缓存</div>`;
     
     if (metaKeys.length > 0) {
-        html += '<div class="field-group"><div class="field-label">元数据</div><div style="font-size:12px;color:#666;">';
+        html += '<div class="field-group"><div class="field-label">元数据</div><div style="font-size:12px;color:#666;overflow-x:auto;white-space:nowrap;padding-bottom:5px;">';
         metaKeys.forEach(k => {
             html += `<span style="margin-right:15px;"><b>${k}:</b> ${escapeHtml(String(data[k]))}</span>`;
         });
