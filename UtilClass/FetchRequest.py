@@ -270,16 +270,20 @@ class FetchRequest:
         for wait_url in post_data.get('wait_urls'):
             res_dict = {}
             if isinstance(wait_url, str):
+                request_stage = 'Response' if (
+                            post_data.get('key_save') or post_data.get('key_replace')) else 'Request'
                 # key_save or key_replace为True时拦截响应阶段
                 route.route_start(urlPattern=wait_url,
-                            requestStage='Request',
+                            requestStage=request_stage,
                             callback_func=self.fetch_request if self.call_back_func == None else self.call_back_func)
                 res_dict.update({'pattern': url_pattern_cut(wait_url), 'count': 1})
                 self.wait_url_dict.append(
                     res_dict)
             elif isinstance(wait_url, dict):
+                request_stage ='Response' if wait_url.get('modify') or post_data.get('key_save') or post_data.get(
+                    'key_replace') else 'Request'
                 route.route_start(urlPattern=wait_url['url'],
-                            requestStage='Response' if wait_url.get('modify') else 'Request',
+                            requestStage=request_stage,
                             callback_func=self.fetch_request if self.call_back_func == None else self.call_back_func,
                             )
                 res_dict.update({'pattern': url_pattern_cut(wait_url['url']),

@@ -32,8 +32,8 @@ def get_brand_new_proxy():
         #     'https': f"http://{proxies_item['host']}",
         # }
         return {
-            'http': f"http://127.0.0.1:7897",
-            'https': f"http://127.0.0.1:7897",
+            'http': f"http://127.0.0.1:9002",
+            'https': f"http://127.0.0.1:9002",
         }
     except Exception as e:
         raise Exception("获取代理失败")
