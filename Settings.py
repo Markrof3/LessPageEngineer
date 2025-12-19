@@ -47,7 +47,7 @@ EXTENSION_PATHS = []
 CHANGE_BROWSER = False
 # 启动项设置 (稳定)
 CHROME_STABLE_ARGUMENT = [
-    '--disable-web-security',  # cloudflare检测
+    # '--disable-web-security',  # cloudflare检测(检测请求头中origin是否正确)
     '--ignore-certificate-errors',
     '--no-sandbox',
     '--disable-gpu',

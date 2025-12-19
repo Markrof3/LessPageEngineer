@@ -335,7 +335,7 @@ class RouteHandler(RouteDriver):
             self._driver.run('Fetch.enable', patterns=self.__patterns, _timeout=self._timeout, record=True)
             self._driver.set_callback('Fetch.requestPaused', self._requestPaused)
         else:
-            self._driver.run('Fetch.disable', patterns=self.__patterns, _timeout=self._timeout, record=True)
+            self._driver.run('Fetch.disable', _timeout=self._timeout, record=True)
             self._driver.set_callback('Fetch.requestPaused')
 
     @property
